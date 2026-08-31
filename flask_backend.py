@@ -11,8 +11,17 @@ static server) — it calls this backend at http://localhost:5000/predict
 
 import os
 import io
+import gc
+
+# Keep torch's internal thread pools small — on a 512MB instance, extra
+# OpenMP/MKL threads each carry their own memory overhead.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
 
 import torch
+torch.set_num_threads(1)
+torch.set_grad_enabled(False)
+
 import timm
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -66,6 +75,9 @@ def predict():
     real_prob = probs[0].item()
     ai_prob = probs[1].item()
     is_real = ai_prob <= AI_THRESHOLD
+
+    del tensor, outputs, probs, img
+    gc.collect()
 
     return jsonify({
         "verdict": "real" if is_real else "synthetic",
