@@ -1,0 +1,5 @@
+timm
+pillow
+flask
+flask-cors
+gunicorn
